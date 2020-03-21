@@ -34,6 +34,24 @@ recovered_long$Date <- recovered_long$Date %>%
   as.Date(format = "%m/%d/%y")
 
 covid19_long <- confirmed_long %>% left_join(deaths_long) %>% left_join(recovered_long)
+
+# aggregate country level USdata to states
+split_list <- covid19_long$Province.State %>%
+  as.character %>%
+  strsplit(split = ",") %>%
+  lapply(function(x) trimws(x))
+indecies_to_replace <- which(lapply(split_list, function(x) length(x))==2)
+state_codes <- split_list[indecies_to_replace] %>%
+  lapply(function(x) x[2]) %>%
+  lapply(function(x) state.name[grep(x, state.abb)]) %>%
+  lapply(function(x) ifelse(length(x)==0,"District of Columbia",x)) %>%
+  unlist
+
+covid19_long$Province.State[indecies_to_replace]<-state_codes
+
+#covid19_long$Weekday <- weekdays(as.Date(covid19_long$Date))
+covid19_long$DeathRate <- covid19_long$Deaths/(covid19_long$Confirmed)
+
 write.csv(x = covid19_long,file = "./Data/COVID19_TS_long.csv",row.names = FALSE)
 
 rm(list = ls())
