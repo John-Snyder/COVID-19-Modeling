@@ -35,6 +35,8 @@ recovered_long$Date <- recovered_long$Date %>%
 
 covid19_long <- confirmed_long %>% left_join(deaths_long) %>% left_join(recovered_long)
 
+#covid19_long %>% filter(grepl(pattern = ",",x = .$Province.State)) %>% View
+
 # aggregate country level USdata to states
 split_list <- covid19_long$Province.State %>%
   as.character %>%
@@ -48,6 +50,15 @@ state_codes <- split_list[indecies_to_replace] %>%
   unlist
 
 covid19_long$Province.State[indecies_to_replace]<-state_codes
+covid19_long <- 
+covid19_long %>%
+  group_by(Province.State,Country.Region,Date) %>%
+  summarise(Lat = mean(Lat),
+            Long = mean(Long),
+            Confirmed = sum(Confirmed),
+            Deaths=sum(Deaths),
+            Recovered = sum(Recovered))
+
 
 #covid19_long$Weekday <- weekdays(as.Date(covid19_long$Date))
 covid19_long$DeathRate <- covid19_long$Deaths/(covid19_long$Confirmed)
