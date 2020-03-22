@@ -10,10 +10,10 @@ library(RColorBrewer)
 # day <- 0:(length(Infected)-1)
 # N <- 1400000000 #pop of china
 
-Infected <- covid19_long %>% filter(Province.State=="New York") %>% as.data.frame %>% select(Confirmed) %>% unlist %>% as.numeric
-Infected[21] <- (Infected[20]+Infected[22])/2
+Infected <- covid19_long %>% filter(Country.Region=="Japan") %>% as.data.frame %>% select(Confirmed) %>% unlist %>% as.numeric
+#Infected[21] <- (Infected[20]+Infected[22])/2
 day <- 0:(length(Infected)-1)
-N <- 8000000
+N <- 126800000
 
 ###edit 1: use different boundary condiotion
 ###init <- c(S = N-1, I = 1, R = 0)
@@ -147,12 +147,12 @@ RSS.SIRMC2 <- function(const,R0,TS) {
   return(RSS)
 }
 RSS.SIRMC <- function(const,TS) {
-  optimize(RSS.SIRMC2, lower=1,upper=10^5,const=const,TS)$objective
+  optimize(RSS.SIRMC2, lower=0.5,upper=10^5,const=const,TS=TS)$objective
 }
 
 getOptim <- function(TS) {
   opt1 <- optimize(RSS.SIRMC,lower=0,upper=1,TS=TS)
-  opt2 <- optimize(RSS.SIRMC2, lower=1,upper=10,const=opt1$minimum,TS=TS)
+  opt2 <- optimize(RSS.SIRMC2, lower=0.5,upper=10,const=opt1$minimum,TS=TS)
   return(list(RSS=opt2$objective,const=opt1$minimum,R0=opt2$minimum))
 }
 
@@ -162,35 +162,39 @@ names(Opt_par) <- c("const", "R0")
 modInfected <- data.frame(ode(y = init, times = day, func = SIR2, parms = Opt_par))$I
 
 # doing the nested model to get RSS
-set.seed(1)
+#set.seed(1)
 Infected_MC <- Infected
-modnested <- getOptim()
+modnested <- getOptim(Infected_MC)
 
 errrate <- modnested$RSS/sum(Infected) 
 
 MC_R0 <- function(i){
-  Infected_MC <- rpois(length(modInfected),modInfected)
+  Infected_MC <- rnorm(length(modInfected),modInfected,sqrt(modInfected*errrate))
+  #Infected_MC <- rpois(length(modInfected),modInfected)
   OptMC <- getOptim(TS=Infected_MC)
   return(c(OptMC$const,OptMC$R0))
 }
 
-n_mc <- 21
+n_mc <- 10*(detectCores()-1)
 
-
+rm(.Random.seed, envir=globalenv())
 library(parallel)
 cl <- makeForkCluster(detectCores()-1)
 
-parLapply(cl,as.list(1:n_mc),MC_R0)
+mc_samples <- parLapply(cl,as.list(1:n_mc),MC_R0)
 
 stopCluster(cl)
 
+par <- do.call("rbind",mc_samples)
 
-par <- par[-1,]
+par<-par[-which(par[,2]>9.5),]
+par<-par[-which(par[,1]>0.4),]
 
-plot(par, xlab = "const",ylab="R0",ylim=c(1,5))
+plot(x=par[,1],y=par[,2], xlab = "const",ylab="R0")
 title("Monte Carlo simulation")
 cov(par)
 
+hist(par[,2],breaks = 50)
 
 ###conclusion: the parameter R0 can not be reliably estimated
 
