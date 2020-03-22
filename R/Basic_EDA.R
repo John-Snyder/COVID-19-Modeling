@@ -6,7 +6,7 @@ source("./R/Import_TS_data.R")
 covid19_long <- read.csv("./Data/COVID19_TS_long.csv")
 covid19_long <- 
   covid19_long %>%
-  filter(Confirmed>4) %>%
+  filter(Confirmed>1) %>%
   group_by(Province.State,Country.Region) %>%
   arrange(Date) %>% 
   mutate(Days_Since_First = 1:n(),
