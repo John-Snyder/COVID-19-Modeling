@@ -10,10 +10,10 @@ library(RColorBrewer)
 # day <- 0:(length(Infected)-1)
 # N <- 1400000000 #pop of china
 
-Infected <- covid19_long %>% filter(Country.Region=="Japan") %>% as.data.frame %>% select(Confirmed) %>% unlist %>% as.numeric
-#Infected[21] <- (Infected[20]+Infected[22])/2
+Infected <- covid19_long %>% filter(Country.Region=="Italy") %>% as.data.frame %>% select(Confirmed) %>% unlist %>% as.numeric
+Infected[42] <- (Infected[41]+Infected[43])/2
 day <- 0:(length(Infected)-1)
-N <- 126800000
+N <- 60480000
 
 ###edit 1: use different boundary condiotion
 ###init <- c(S = N-1, I = 1, R = 0)
@@ -85,6 +85,7 @@ mod <- nls(Infected ~ a*exp(b*day),
            control = nls.control(maxiter = 500, tol = 1e-05, minFactor = 1e-10,
                                  printEval = FALSE, warnOnly = FALSE)
 )
+lines(x=day,y=predict(mod))
 
 optimsstart <- c(2,1)*coef(mod)[2]
 
@@ -175,7 +176,7 @@ MC_R0 <- function(i){
   return(c(OptMC$const,OptMC$R0))
 }
 
-n_mc <- 10*(detectCores()-1)
+n_mc <- 100*(parallel::detectCores()-1)
 
 rm(.Random.seed, envir=globalenv())
 library(parallel)
